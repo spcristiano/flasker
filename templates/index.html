@@ -1,0 +1,14 @@
+<h1>Hello {{first_name|capitalize}}</h1>
+<p>This is my first webpage</p>
+<p>My name is {{ first_name }}</p>
+<p>{{ stuff|safe }}</p>
+<p>{{ stuff|striptags }}</p>
+
+{% for pizzar in favourite_pizzars %}
+
+    {% if pizzar == 41 %}
+        {{ pizzar + 100}}<br/>
+    {% else %}
+        {{ pizzar}}<br/>
+    {% endif %}
+{% endfor %}
