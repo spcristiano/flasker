@@ -22,40 +22,60 @@
 {% else %}
     <h1>User List: </h1>
     <br>
-    <form action="" method="post">
-        {{ form.hidden_tag() }}
-
-        {{ form.name.label(class="form-label") }}
-        {{ form.name(class="form-control") }}
-        <br>
-        {{ form.email.label(class="form-label") }}
-        {{ form.email(class="form-control") }}
-        <br>
-        {{ form.submit(class="btn btn-secondary") }}
-
-
-    </form>
+    <div class="shadow p-3 mb-5 bg-body-tertiary rounded col-sm-5 container-fluid">
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+    
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control") }}
+            <br>
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control") }}
+            <br>
+            {{ form.favourite_color.label(class="form-label") }}
+            {{ form.favourite_color(class="form-control") }}
+            <br>
+            {{ form.submit(class="btn btn-secondary") }}
+    
+    
+        </form>
+    </div>
 
     <br>
     <br>
     <br>
-    <table class="table table-striped-columns">
+    <table class="table table-hover table-bordered ">
         <thead>
             <tr class="">
                 <th>User ID</th>
                 <th>User Name </th>
                 <th>User Email</th>
+                <th>Favourite Color</th>
+                <th>Action</th>
 
             </tr>
         </thead>
-        <tbody class="">
+        <tbody class="table-striped">
             {% for all_user in all_users %}
-            <tr>
+            <tr class="">
                 <th scope="row">{{ all_user.id }}</th>
-                <td>{{ all_user.name|capitalize }}</td>
+                <td><a href="{{ url_for('update', id=all_user.id)}}">{{ all_user.name|capitalize }}</a></td>
                 <td>{{ all_user.email }}</td>
-            </tr>            
+                <td>{{ all_user.favourite_color}}</td>
+                <td>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-around">
+                        <a href="{{ url_for('update', id=all_user.id)}}">
+                            <button class="btn btn-warning me-md-2" type="button">Update</button>
+                        </a>
+                        <a href="{{ url_for('delete', id=all_user.id)}}">
+                            <button class="btn btn-outline-danger" type="button">Delete</button>
+                        </a>
+                            
+                    </div>
+                </td>
+                <!-- <td><a href="{{ url_for('delete', id=all_user.id)}}"><button type="button" class="btn btn-outline-danger">Delete</button></a></td> -->
 
+            </tr>
         </tbody>
         {% endfor %}
     </table>

@@ -1,0 +1,15 @@
+h1{
+    color:darkblue;
+}
+img#profile_pix{
+    border-radius: 100%;
+    width: 100px;
+}
+
+p#demo{
+    font-size: 15px;
+    color:darkblue;
+}
+a{
+    text-decoration: none;
+}
