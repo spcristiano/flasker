@@ -1,13 +1,35 @@
-from flask import Flask, render_template
+from datetime import datetime
+from flask import Flask, render_template, flash
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
+from flask_sqlalchemy import SQLAlchemy
 
 # creating flask instance
 app = Flask(__name__)
 
+# add database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+
 # Creating secret key
 app.config['SECRET_KEY'] = 'my super secret key that no one is required to know'
+
+# Initialize the database
+db = SQLAlchemy(app)
+
+
+# Creating model class for database mapping
+class User(db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=False, unique=True)
+    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Creating function strings
+    def __repr__(self):
+        return '<Name %r>' % self.name
 
 
 # creating a form class
@@ -51,7 +73,12 @@ app.config['SECRET_KEY'] = 'my super secret key that no one is required to know'
 class NamerForm(FlaskForm):
     name = StringField("What is your name", validators=[DataRequired()])
     submit = SubmitField("Submit")
-    
+
+
+class UserForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired()])
+    submit = SubmitField("Submit")
 
 
 # '''
@@ -93,9 +120,41 @@ def name():
     if form.validate_on_submit():
         name = form.name.data
         form.name.data = ''
+        flash('Form Submitted Successfully', 'success')
     return render_template('name.html', name=name, form=form)
+
+
+@app.route('/user/add', methods=['GET', 'POST'])
+def add_user():
+    name = None
+    form = UserForm()
+    # validate form
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user is None:
+            user = User(
+                name=form.name.data,
+                email=form.email.data
+            )
+            db.session.add(user)
+            db.session.commit()
+            name = form.name.data
+            form.name.data = ''
+            form.email.data = ''
+            flash(f'User with name {name} was Added Successfully', 'success') 
+        else:
+            email = form.email.data
+            flash(f'User with this email {email} already exist. Please use another email', 'danger')
+        
+    # Display all users in the database and order by date added
+    all_users = User.query.order_by(User.date_added)
+    
+    return render_template('add_user.html', form=form, all_users=all_users)
+    
+    
     
 # creating custom error pages
+
 
 # invalid url
 
