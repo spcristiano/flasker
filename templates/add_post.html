@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show " role="alert">
+                <strong>{{ message }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+
+    {% endif %}
+{% endwith %}
+
+
+    <h1>ADD BLOG POST: </h1>
+    <br>
+    <div class="shadow p-3 mb-5 bg-body-tertiary rounded col-sm-5 container-fluid">
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+    
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-control") }}
+            <br>
+            {{ form.author.label(class="form-label") }}
+            {{ form.author(class="form-control") }}
+            <br>
+            {{ form.slug.label(class="form-label") }}
+            {{ form.slug(class="form-control") }}
+            <br>
+            {{ form.content.label(class="form-label") }}
+            {{ form.content(class="form-control") }}
+            <br>
+            <div class="d-md-flex justify-content-md-end">
+                {{ form.submit(class="btn btn-primary", value="Post") }}
+            </div>
+            
+    
+    
+        </form>
+    </div>
+
+    <br>
+    <br>
+    <br>
+    <table class="table table-hover table-bordered ">
+        <thead>
+            <tr class="text-uppercase text-center">
+                <th>Post ID</th>
+                <th>Post Title </th>
+                <th>Post Author</th>
+                <th>Post Slug</th>
+                <th>Post Content</th>
+                <th>Post Action</th>
+
+            </tr>
+        </thead>
+        <tbody class="table-striped">
+            {% for post in posts %}
+            <tr class="">
+                <th scope="row" class="text-center">{{ post.id }}</th>
+                <td><a href="{{ url_for('single_post', slug=post.slug, id=post.id)}}">{{ post.title|capitalize }}</a></td>
+                <td>{{ post.author }}</td>
+                <td>{{ post.slug}}</td>
+                <td>{{ post.content}}</td>
+                <td>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-around">
+                        <a href="{{ url_for('update_post', id=post.id)}}">
+                            <button class="btn btn-warning me-md-2" type="button">Update</button>
+                        </a>
+                        <a href="{{ url_for('delete_posts', id=post.id)}}">
+                            <button class="btn btn-outline-danger" type="button">Delete</button>
+                        </a>
+                            
+                    </div>
+                </td>
+
+            </tr>
+        </tbody>
+        {% endfor %}
+    </table>
+
+{% endblock %}
+    

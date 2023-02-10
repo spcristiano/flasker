@@ -35,7 +35,18 @@
             {{ form.favourite_color.label(class="form-label") }}
             {{ form.favourite_color(class="form-control") }}
             <br>
-            {{ form.submit(class="btn btn-secondary") }}
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control") }}
+            <br>
+            {{ form.password_hash.label(class="form-label") }}
+            {{ form.password_hash(class="form-control") }}
+            <br>
+            {{ form.password_hash2.label(class="form-label") }}
+            {{ form.password_hash2(class="form-control") }}
+            <br>
+            <div class="d-md-flex justify-content-md-end">
+                {{ form.submit(class="btn btn-primary", value="Add New User") }}
+            </div>
     
     
         </form>
@@ -46,11 +57,13 @@
     <br>
     <table class="table table-hover table-bordered ">
         <thead>
-            <tr class="">
+            <tr class="text-uppercase text-center">
                 <th>User ID</th>
-                <th>User Name </th>
+                <th>Name </th>
                 <th>User Email</th>
                 <th>Favourite Color</th>
+                <th>Username</th>
+                <th>Password</th>
                 <th>Action</th>
 
             </tr>
@@ -58,10 +71,12 @@
         <tbody class="table-striped">
             {% for all_user in all_users %}
             <tr class="">
-                <th scope="row">{{ all_user.id }}</th>
+                <th scope="row" class="text-center">{{ all_user.id }}</th>
                 <td><a href="{{ url_for('update', id=all_user.id)}}">{{ all_user.name|capitalize }}</a></td>
                 <td>{{ all_user.email }}</td>
                 <td>{{ all_user.favourite_color}}</td>
+                <td><a href="{{ url_for('update', id=all_user.id)}}">{{ all_user.username}}</a></td>
+                <td>{{ all_user.password_hash}}</td>
                 <td>
                     <div class="d-grid gap-2 d-md-flex justify-content-md-around">
                         <a href="{{ url_for('update', id=all_user.id)}}">

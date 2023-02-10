@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show " role="alert">
+                <strong>{{ message }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+
+    {% endif %}
+{% endwith %}
+
+<h1>LOG IN </h1>
+<br>
+<div class="shadow p-3 mb-5 bg-body-tertiary rounded col-sm-5 container-fluid">
+    <form action="{{ url_for('login')}}" method="post">
+        {{ form.hidden_tag() }}
+    
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control") }}
+        <br>
+        {{ form.password_hash.label(class="form-label") }}
+        {{ form.password_hash(class="form-control") }}
+        <br>
+        <div class=" d-md-flex justify-content-md-center">
+            {{ form.submit(class="btn btn-primary ", value="Login") }}
+
+        </div>
+    
+    
+    </form>
+</div>
+
+
+{% endblock %}
+    

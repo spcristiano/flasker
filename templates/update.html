@@ -35,10 +35,34 @@
             {{ form.favourite_color.label(class="form-label") }}
             {{ form.favourite_color(class="form-control", value=name_to_update.favourite_color) }}
             <br>
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control disable", value=name_to_update.username) }}
+            <br>
+            
             {{ form.submit(class="btn btn-secondary btn-warning", value="Update") }}
+            <br>
+
     
     
         </form>
+        <br>
+        <hr class="border border-secondary border-2 opacity-50">
+        <br>
+        <p>Change your password by updating the password field below</p>
+        <form action="{{url_for('update_password', id=name_to_update.id)}}" method="post">
+            {{ form.hidden_tag() }}
+
+            {{ form.password_hash.label(class="form-label") }}
+            {{ form.password_hash(class="form-control", value=name_to_update.password_hash) }}
+            <br>
+            {{ form.password_hash2.label(class="form-label") }}
+            {{ form.password_hash2(class="form-control ", value=name_to_update.password_hash2) }}
+            <br>
+            
+            {{ form.submit(class="btn btn-secondary btn-warning", value="Change Password") }}
+            <br>
+        </form>
+        
     </div>
 
     <br>

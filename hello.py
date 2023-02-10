@@ -1,10 +1,12 @@
-from datetime import datetime
+from datetime import datetime, date
 from flask import Flask, render_template, flash, request, redirect, url_for
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
+from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, TextAreaField
+from wtforms.validators import DataRequired, EqualTo, Email, Length
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash, check_password_hash
+from wtforms.widgets import TextArea
 
 
 # creating flask instance
@@ -29,6 +31,8 @@ migrate = Migrate(app, db)
 
 
 # Creating model class for database mapping
+
+# user model
 class User(db.Model):
     __tablename__ = 'users'
     
@@ -36,12 +40,36 @@ class User(db.Model):
     name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), nullable=False, unique=True)
     favourite_color = db.Column(db.String(200))
+    username = db.Column(db.String(200),nullable=False, unique=True)
+    password_hash = db.Column(db.String(300), nullable=False)
     date_added = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # setting password hashing system
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+    
+    @password.setter
+    def password(self,password):
+        self.password_hash = generate_password_hash(password)
+        
+    def verify_password(self,password):
+        return check_password_hash(self.password_hash, password)
     
     # Creating function strings
     def __repr__(self):
         return '<Name %r>' % self.name
 
+# creating blog post model
+class Post(db.Model):
+    __tablename__ = 'posts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(300))
+    content = db.Column(db.Text)
+    author = db.Column(db.String(200))
+    date_posted = db.Column(db.DateTime, default=datetime.utcnow)
+    slug = db.Column(db.String(300))
 
 # creating a form class
 
@@ -88,9 +116,23 @@ class NamerForm(FlaskForm):
 
 class UserForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired()])
+    username = StringField("Username", validators=[DataRequired()])
+    # email = StringField("Email", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    password_hash = PasswordField("Password", validators=[DataRequired(), EqualTo('password_hash2', message="Password Must Match")])
+    password_hash2 = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo('password_hash', message="Password Must Match")])
     favourite_color = StringField("Favourite Color")
     submit = SubmitField("Submit")
+    
+    
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    content = TextAreaField('Content',validators=[DataRequired()])
+    # content = StringField('Content',validators=[DataRequired()], widget=TextArea())
+    author = StringField('Author', validators=[DataRequired()])
+    slug = StringField('Slug', validators=[DataRequired()])
+    submit = SubmitField('Post')
+    
 
 
 # '''
@@ -108,10 +150,76 @@ class UserForm(FlaskForm):
 
 @app.route('/')
 def index():
-    first_name = 'John'
-    stuff =  'This is a <b>Bold Text</b>'
-    favourite_pizzars = ['pepperoni','Marka','melein',43, 'mandae',41]
-    return render_template('index.html', first_name=first_name, stuff=stuff,favourite_pizzars=favourite_pizzars)
+    form = UserForm()
+    return render_template('login.html',form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    email = None
+    password = None
+    pw_to_check = None
+    passed = None
+    form = UserForm()
+    
+    # Validate form
+    # if form.validate_on_submit():
+    #     email= form.email.data
+    #     password = form.password_hash.data
+    #     form.email.data =''
+    #     form.password_hash.data = ''
+    if request.method == 'POST':
+        email= request.form['email']
+        password = request.form['password_hash']
+        
+        form.email.data =''
+        form.password_hash.data = ''
+        
+        # query database
+        pw_to_check = User.query.filter_by(email=email).first()
+        if pw_to_check:
+            username = pw_to_check.username
+            user_password = pw_to_check.password_hash
+            passed = check_password_hash(user_password, password)
+            # authenticating the user
+            if passed == True:
+                flash(f'Dear {username}, welcome to our site', 'success')
+                return render_template('dashboard.html', form=form, passed=passed)
+            else:
+                flash(f'Dear {username}, your password is not correct', 'danger')
+                return redirect(url_for('login'))
+                # return render_template('login.html', form=form, passed=passed)
+                
+            # flash(f'Dear {username}, welcome to our site', 'success')
+            # return render_template('dashboard.html', form=form, passed=passed)
+        else:
+            user = email
+            flash(f'This user {user} is not yet registered on our website', 'danger')
+            return redirect(url_for('index'))
+            # return render_template('login.html', form=form, passed=passed)
+            
+            
+            # return redirect(url_for('dashboard', id=id))
+            
+            
+        # return render_template('login.html', form=form, passed=passed)
+    
+            
+        # if pw_to_check:
+        #     username = pw_to_check.username
+        #     user_password = pw_to_check.password_hash
+        #     passed = check_password_hash(user_password, password)
+        #     flash(f'Dear {username}, welcome to our site', 'success')
+        #     return render_template('dashboard.html', passed=passed)
+        # else:
+        #     user = form.email.data
+        #     flash(f'This {user} is not yet registered on our website', 'danger')
+        #     return render_template('login.html', form=form)
+    # else:
+    #     # user = form.email.data
+    #     # flash(f'This {user} is not yet registered on our website', 'danger')
+    # return render_template('dashboard.html', form=form, passed=passed)
+    return render_template('login.html', form=form, passed=passed)
+    
 
 
 @app.route('/user/<username>')
@@ -144,21 +252,31 @@ def add_user():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user is None:
+            hashed_pwd = generate_password_hash(form.password_hash.data, 'sha256')
             user = User(
                 name=form.name.data,
                 email=form.email.data,
-                favourite_color=form.favourite_color.data
+                favourite_color=form.favourite_color.data,
+                username=form.username.data,
+                password_hash=hashed_pwd
             )
             db.session.add(user)
             db.session.commit()
+            
             name = form.name.data
+            # clearing form data
             form.name.data = ''
             form.email.data = ''
             form.favourite_color.data = ''
-            flash(f'User with name {name.capitalize()} was Added Successfully', 'success') 
+            form.username.data = ''
+            form.password_hash.data = ''
+            flash(f'User with name {name.capitalize()} was Added Successfully', 'success')
+            return redirect(url_for('add_user'))
         else:
             email = form.email.data
             flash(f'User with this email {email} already exist. Please use another email', 'danger')
+            return redirect(url_for('add_user'))
+            
         
     # Display all users in the database and order by date added
     all_users = User.query.order_by(User.date_added)
@@ -171,25 +289,75 @@ def update(id):
     form = UserForm()
     
     name_to_update = User.query.get_or_404(id)
+    # password_to_update = name_to_update.password_hash
     if request.method == 'POST':
         name_to_update.name = request.form['name']
         name_to_update.email = request.form['email']
         name_to_update.favourite_color = request.form['favourite_color']
+        name_to_update.username = request.form['username']
+        # name_to_update.password_hash = request.form['password_hash']
+        
+        
         
         try:
             db.session.commit()
             flash('User details updated successfully', 'success')
             
             # email = name_to_update.email
-            
-            return render_template('update.html', form=form, name_to_update=name_to_update)
+            return redirect(url_for('update', id=id))
+            # return render_template('update.html', form=form, name_to_update=name_to_update)
         except:
             flash('Error updating this user. Please try again', 'danger')
-            return render_template('update.html', form=form, name_to_update=name_to_update)
+            return redirect(url_for('update', id=id))
+            
+            # return render_template('update.html', form=form, name_to_update=name_to_update)
         
-    else:
-        return render_template('update.html', form=form, name_to_update=name_to_update)
+    # else:
+    return render_template('update.html', form=form, name_to_update=name_to_update)
+    
         
+
+# update password only
+@app.route('/update_password/<int:id>', methods=['GET', 'POST'])
+def update_password(id):
+    form = UserForm()
+    
+    name_to_update = User.query.get_or_404(id)
+    
+    
+    if request.method == 'POST':
+        hashed_pwd = generate_password_hash(request.form['password_hash'], 'sha256')
+        
+        # name_to_update.password_hash = request.form['password_hash']
+        name_to_update.password_hash = hashed_pwd
+        username = name_to_update.username 
+        username = username       
+        try:
+            db.session.commit()
+            flash(f'Dear {username} your password have been successfully updated ', 'success')
+            return redirect(url_for('update', id=id))
+        except:
+            flash(f'Dear {username}, There was an error updating your password', 'danger')
+            # return render_template('update.html', form=form, password_to_update=password_to_update)
+            return redirect(url_for('update', id=id))
+    # else:
+    #     return render_template('update.html', form=form, name_to_update=name_to_update)
+    return render_template('update.html', form=form, name_to_update=name_to_update)
+        
+      
+        
+#   Using Json      # 
+@app.route('/date')
+def get_current_date():
+    favourite_pizza ={
+        "John": "Peperoni",
+        "Mary": "Manaku",
+        "Eli": "Saltidi"
+    }
+    # return {"Date": date.today()}
+    return (favourite_pizza)
+    
+    
 
         
    # delete specific user database record
@@ -222,8 +390,113 @@ def delete(id):
         
         
 
+@app.route('/add_post', methods=['GET', 'POST'])     
+def add_post():
+    form = PostForm()
+    posts = Post.query.order_by(Post.date_posted)
+    
+    
+    #  checking if the form is submitted
+    if form.validate_on_submit():
+        post = Post(title=form.title.data, content=form.content.data, author=form.author.data, slug=form.slug.data)
         
-   
+        # clering the form
+        form.title.data = ''
+        form.content.data = ''
+        form.author.data = ''
+        form.slug.data = ''  
+    
+        # adding post data to database
+        db.session.add(post)
+        db.session.commit() 
+
+        # returning a message
+        flash('Blog post submitted successfully', 'success') 
+        return redirect(url_for('add_post'))
+        
+        # show all blog posts
+    return render_template('add_post.html', form=form, posts=posts)
+
+# showing single post
+@app.route('/single_post/<slug>/<int:id>')
+def single_post(slug, id):
+    form = PostForm()
+    posts = Post.query.order_by(Post.date_posted)    
+    return render_template('single_post.html', form=form, posts=posts)
+    
+# editing Post
+@app.route('/update_post/<int:id>', methods=['GET', 'POST'])
+def update_post(id):
+    form = PostForm()
+    # query all posts
+    posts = Post.query.order_by(Post.date_posted)    
+    
+    post_to_update = Post.query.get_or_404(id)
+    if form.validate_on_submit():
+        # post_to_update = Post.query.get_or_404(id)
+        if post_to_update:
+            post_to_update.title = form.title.data
+            post_to_update.content = form.content.data
+            post_to_update.author = form.author.data
+            post_to_update.slug = form.slug.data
+            try:
+                db.session.commit()
+                flash(f'Post with id {id} was successfully updated', 'success')
+                return redirect(url_for('add_post'))
+            except:
+                flash('Error updating this post. Please try again', 'danger')
+                return redirect(url_for('update_post', id=id))
+        else:
+            return redirect(url_for('add_post'))
+    return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update)
+    
+                
+                
+                
+            
+        
+        
+    # if request.method == 'POST':
+    #     post_to_update.title = request.form['title']
+    #     post_to_update.content = request.form['content']
+    #     post_to_update.author = request.form['author']
+    #     post_to_update.slug = request.form['slug']
+        
+        # try:
+        #     db.session.commit()
+        #     flash('Post successfully updated', 'success')
+        #     redirect(url_for('update_post', id=id))
+            
+            # redirect(url_for('add_post'))
+            
+            # return render_template('add_post', form=form, posts=posts)
+        # except:
+            # flash('Error updating this post. Please try again', 'danger')
+            # redirect(url_for('update_post', id=id))            
+            # return render_template('update_post.html', form=form, posts=posts)
+    # else:
+        # redirect(url_for('update_post', id=id))            
+    
+    #     return render_template('add_post.html', form=form, posts=posts)
+    # return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update)
+            
+#  delete post
+@app.route('/delete_post/<int:id>', methods=['GET', 'POST'])
+def delete_posts(id):
+    post_to_delete = Post.query.get_or_404(id)
+    try:
+        db.session.delete(post_to_delete)
+        db.session.commit()
+        flash(f'Post with id {id} and title {post_to_delete.title} has been deleted successfully. ', 'success')
+        
+        posts = Post.query.order_by(Post.date_posted)    
+        
+        return redirect(url_for('add_post'))
+    except:
+        flash('Error deleting this post. Please try agian', 'danger')
+    return render_template('add_post.html',posts=posts)
+
+
 # creating custom error pages
 
 
@@ -241,3 +514,4 @@ def internal_server_error(e):
     
 if __name__ == '__main__':
     app.run(debug = True)
+    
