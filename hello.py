@@ -1,8 +1,9 @@
 from datetime import datetime, date
 from flask import Flask, render_template, flash, request, redirect, url_for
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, TextAreaField
+from wtforms import StringField, SubmitField, PasswordField, BooleanField, RadioField,ValidationError, TextAreaField, EmailField
 from wtforms.validators import DataRequired, EqualTo, Email, Length
+from wtforms_validators import  AlphaNumeric, Integer
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -115,22 +116,23 @@ class NamerForm(FlaskForm):
 
 
 class UserForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired()])
-    username = StringField("Username", validators=[DataRequired()])
+    name = StringField("Name", validators=[DataRequired(message='Name field is required. Please input your name')])
+    username = StringField("Username", validators=[DataRequired(message='Username field is required. Please input your username'), AlphaNumeric(message='This field can only contain alphabets and numbers')])
     # email = StringField("Email", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired(), Email()])
-    password_hash = PasswordField("Password", validators=[DataRequired(), EqualTo('password_hash2', message="Password Must Match")])
-    password_hash2 = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo('password_hash', message="Password Must Match")])
+    email = EmailField("Email", validators=[DataRequired(message='Email field is required. Please input your email'), Email(message='Please insert an email in this field')])
+    password_hash = PasswordField("Password", validators=[DataRequired(message='Password field is required. Please input your password'), EqualTo('password_hash2', message="Password do not match. This password must match the confirm password field"), Length(message='Password must be at least 6 characters long',min=6)],id='password_hash')
+    password_hash2 = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo('password_hash', message="Password do not match. This confirm password field must match the password field")],id='password_hash2')
     favourite_color = StringField("Favourite Color")
+    show_password = BooleanField('Show Password', id='flexSwitchCheckDefault')
     submit = SubmitField("Submit")
     
     
 class PostForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    content = TextAreaField('Content',validators=[DataRequired()])
-    # content = StringField('Content',validators=[DataRequired()], widget=TextArea())
-    author = StringField('Author', validators=[DataRequired()])
-    slug = StringField('Slug', validators=[DataRequired()])
+    title = StringField('Title', validators=[DataRequired(message='This title field is required. Please give your post a title')])
+    # content = TextAreaField('Content',validators=[DataRequired()], default='Write your post here')
+    content = StringField('Content',validators=[DataRequired(message='This content field is requred. Please write your post here')], widget=TextArea())
+    author = StringField('Author', validators=[DataRequired(message='This author field is required. Please write the author of this post')])
+    slug = StringField('Slug', validators=[DataRequired(message='This slug field is required. Please give your message a slug to for more usability.')])
     submit = SubmitField('Post')
     
 
@@ -421,8 +423,10 @@ def add_post():
 @app.route('/single_post/<slug>/<int:id>')
 def single_post(slug, id):
     form = PostForm()
-    posts = Post.query.order_by(Post.date_posted)    
-    return render_template('single_post.html', form=form, posts=posts)
+    # posts = Post.query.order_by(Post.date_posted)
+    post = Post.query.get_or_404(id)
+        
+    return render_template('single_post.html', form=form, post=post)
     
 # editing Post
 @app.route('/update_post/<int:id>', methods=['GET', 'POST'])
@@ -432,6 +436,8 @@ def update_post(id):
     posts = Post.query.order_by(Post.date_posted)    
     
     post_to_update = Post.query.get_or_404(id)
+    
+    # show_content=PostForm(content=post_to_update.content)
     if form.validate_on_submit():
         # post_to_update = Post.query.get_or_404(id)
         if post_to_update:
@@ -442,13 +448,16 @@ def update_post(id):
             try:
                 db.session.commit()
                 flash(f'Post with id {id} was successfully updated', 'success')
-                return redirect(url_for('add_post'))
+                return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
+                # return redirect(url_for('add_post'))
             except:
                 flash('Error updating this post. Please try again', 'danger')
-                return redirect(url_for('update_post', id=id))
+                return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
+                
+                # return redirect(url_for('update_post', id=id))
         else:
             return redirect(url_for('add_post'))
-    return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update)
+    return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update )
     
                 
                 
@@ -496,7 +505,11 @@ def delete_posts(id):
         flash('Error deleting this post. Please try agian', 'danger')
     return render_template('add_post.html',posts=posts)
 
-
+# show all posts
+@app.route('/posts')
+def posts():
+    posts = Post.query.order_by(Post.date_posted)
+    return render_template('post.html', posts=posts)
 # creating custom error pages
 
 

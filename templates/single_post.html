@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show " role="alert">
+                <strong>{{ message }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+
+    {% endif %}
+{% endwith %}
+
+
+    <h1>BLOG POST: </h1>
+    <br>
+    <section class="container text-center d-flex flex-column flex-wrap justify-content-center align-items-center">
+        
+        <div class="col justify-content-center shadow-lg p-3 mb-5 bg-body-tertiary rounded container-fluid">
+            <div class="d-flex justify-content-center flex-column px-3 mb-2">
+                <div>
+                    <a href="{{ url_for('single_post', slug=post.slug, id=post.id)}}">
+                        <h2 class="text-uppercase fs-2 fw-bolder">{{post.title}}</h2>
+                    </a>
+                </div>
+
+                <div class="d-flex container text-center col justify-content-center">
+                    <hr class="border-1 opacity-30 w-50 ">
+                </div>
+
+                <div class="">
+                    <p class="fs-4 fw-normal text-">{{post.content}}</p>
+                </div>
+
+                <div class="px-1 fs-6 fst-italic text-muted">{{post.author}}</div>
+
+            </div>
+            <div class="d-flex justify-content-evenly align-items-center">                
+                <a href="{{ url_for('update_post', id=post.id)}}">
+                    <div class="px-1 fs-5 fw-semibold btn btn-warning">Update</div>
+                </a>                  
+                
+                <a href="{{ url_for('single_post', slug=post.slug, id=post.id)}}">
+                    <div class="px-1 fs-6 fst-italic text-muted">{{post.date_posted}}</div>
+                </a>
+                
+                <a href="{{ url_for('delete_posts', id=post.id)}}">
+                    <div class="px-1 fs-5 fw-semibold  btn btn-outline-danger">Delete</div>
+                </a>
+            </div>
+        </div>
+    
+    </section>
+    
+
+    <br>
+    <br>
+    <br>
+
+    <p class="text-center"><a href="{{ url_for('posts')}}">Go Back</a></p>
+
+    
+
+{% endblock %}
+    
