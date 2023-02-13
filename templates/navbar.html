@@ -5,22 +5,40 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="top_nav_container">
+          {% if current_user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('profile', username='username' )}}">User Profile</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('dashboard', username='username')}}">Dashboard</a>
           </li>
+          <!-- <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('profile', username='username' )}}">User Profile</a>
+          </li> -->
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('name')}}">Name</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('add_user')}}">Add User</a>
-          </li>
+          
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('add_post')}}">Add Post</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('posts')}}">Posts</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('add_user')}}">users</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout')}}">Logout</a>
+          </li>
+          {#<li class="nav-item">
+            <a class="nav-link" href="{{ current_user.name }}">{{ current_user.name }}</a>
+          </li>#}
+          {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('add_user')}}">Register</a>
+          </li>
+
+          {% endif %}
           <!-- <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               Dropdown
@@ -43,3 +61,5 @@
       </div>
     </div>
   </nav>
+
+  

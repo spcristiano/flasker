@@ -3,7 +3,7 @@
 
 
 {% block content %}
-    <h1>Hello {{first_name|capitalize}}</h1>
+   {# <h1>Hello {{user.first_name|capitalize}}</h1>
     <p>This is my first webpage</p>
     <p>My name is {{ first_name }}</p>
     <p>{{ stuff|safe }}</p>
@@ -17,5 +17,27 @@
             {{ pizzar}}<br/>
         {% endif %}
     {% endfor %}
+    #}
+
+    <br>
+<strong>User ID: </strong>
+{{user.id}}<br>
+
+<strong>Name: </strong> 
+{{user.name}}<br>
+
+<strong>Username: </strong>
+{{user.username}}<br>
+
+
+<strong>Email: </strong>
+{{user.email}}<br>
+
+<strong>Favourite Color: </strong>
+{{user.favourite_color}}<br>
+
+<strong>Date Joined: </strong>
+{{user.date_added}}<br>
+<br>
 {% endblock %}
     

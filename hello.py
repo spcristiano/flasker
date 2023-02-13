@@ -8,6 +8,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.widgets import TextArea
+from flask_login import UserMixin, LoginManager, login_required,login_user,login_remembered,logout_user, current_user
+
+# other import statement
+import secrets, string
 
 
 # creating flask instance
@@ -31,10 +35,21 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
+# Flask Login Initialization
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    user_id = User.query.get(int(user_id))
+    return user_id
+
+
 # Creating model class for database mapping
 
 # user model
-class User(db.Model):
+class User(db.Model,UserMixin):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -153,7 +168,16 @@ class PostForm(FlaskForm):
 @app.route('/')
 def index():
     form = UserForm()
-    return render_template('login.html',form=form)
+    
+    # if the user is already logged in, he wont be able to access the login page again until he log out.
+    if current_user.is_authenticated:
+        username = current_user.username
+        # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
+        return redirect(url_for('dashboard', username=username))
+    
+    else:
+        return render_template('login.html',form=form)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -161,7 +185,16 @@ def login():
     password = None
     pw_to_check = None
     passed = None
+    username = None
+    
     form = UserForm()
+    
+    if current_user.is_authenticated:
+        username = current_user.username
+        # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
+        return redirect(url_for('dashboard', username=username))
+    
+    else:
     
     # Validate form
     # if form.validate_on_submit():
@@ -169,68 +202,118 @@ def login():
     #     password = form.password_hash.data
     #     form.email.data =''
     #     form.password_hash.data = ''
-    if request.method == 'POST':
-        email= request.form['email']
-        password = request.form['password_hash']
-        
-        form.email.data =''
-        form.password_hash.data = ''
-        
-        # query database
-        pw_to_check = User.query.filter_by(email=email).first()
-        if pw_to_check:
-            username = pw_to_check.username
-            user_password = pw_to_check.password_hash
-            passed = check_password_hash(user_password, password)
-            # authenticating the user
-            if passed == True:
-                flash(f'Dear {username}, welcome to our site', 'success')
-                return render_template('dashboard.html', form=form, passed=passed)
-            else:
-                flash(f'Dear {username}, your password is not correct', 'danger')
-                return redirect(url_for('login'))
-                # return render_template('login.html', form=form, passed=passed)
+        if request.method == 'POST':
+            email= request.form['email']
+            password = request.form['password_hash']
+            
+            form.email.data =''
+            form.password_hash.data = ''
+            
+            # query database
+            # pw_to_check = User.query.filter_by(email=email).first()
+            user = User.query.filter_by(email=email).first()
+            # pw_to_check = user.password_hash
+            
+            # if pw_to_check:
+            if user:
+                # username = pw_to_check.username
+                username = user.username
+                # user_password = pw_to_check.password_hash
+                # user_password = pw_to_chec
+                user_password = user.password_hash
+                # check if the given password is same as the stored user password in the database.
+                passed = check_password_hash(user_password, password)
+                # authenticating the user
+                if passed == True:
+                    # This will login the user and create a session
+                    # login_user(pw_to_check)
+                    login_user(user)
+                    # autogenerate a secure secret url
+                    # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))
+                    username = current_user.username
+                    flash(f'Dear {username}, welcome to our site', 'success')
+
+                    return redirect(url_for('dashboard', username=username, current_user=current_user))
                 
-            # flash(f'Dear {username}, welcome to our site', 'success')
-            # return render_template('dashboard.html', form=form, passed=passed)
-        else:
-            user = email
-            flash(f'This user {user} is not yet registered on our website', 'danger')
-            return redirect(url_for('index'))
-            # return render_template('login.html', form=form, passed=passed)
-            
-            
-            # return redirect(url_for('dashboard', id=id))
-            
-            
-        # return render_template('login.html', form=form, passed=passed)
-    
-            
-        # if pw_to_check:
-        #     username = pw_to_check.username
-        #     user_password = pw_to_check.password_hash
-        #     passed = check_password_hash(user_password, password)
-        #     flash(f'Dear {username}, welcome to our site', 'success')
-        #     return render_template('dashboard.html', passed=passed)
-        # else:
-        #     user = form.email.data
-        #     flash(f'This {user} is not yet registered on our website', 'danger')
-        #     return render_template('login.html', form=form)
-    # else:
-    #     # user = form.email.data
-    #     # flash(f'This {user} is not yet registered on our website', 'danger')
-    # return render_template('dashboard.html', form=form, passed=passed)
-    return render_template('login.html', form=form, passed=passed)
+                else:
+                    flash(f'Dear {username}, your password is not correct', 'danger')
+                    return redirect(url_for('login'))
+            else:
+                user = email
+                flash(f'This user {user} is not yet registered on our website', 'danger')
+                return redirect(url_for('index'))
+        return render_template('login.html', form=form, passed=passed, username=username)
     
 
-
+@app.route('/dashboard/<username>', methods=['GET', 'POST'])
+@login_required
+def dashboard(username):
+    
+        
+    form = UserForm()
+    
+    id = current_user.id
+    
+    # secure_url = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
+    
+    profile_to_update = User.query.get_or_404(id)
+    
+    username = profile_to_update.username
+    # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))
+    
+   
+    # password_to_update = name_to_update.password_hash
+    if request.method == 'POST':
+        profile_to_update.name = request.form['name']
+        profile_to_update.email = request.form['email']
+        profile_to_update.favourite_color = request.form['favourite_color']
+        profile_to_update.username = request.form['username']
+        # name_to_update.password_hash = request.form['password_hash']
+        
+        
+        
+        try:
+            db.session.commit()
+            flash('User details updated successfully', 'success')
+            
+            # username = current_user.username
+            # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
+            
+            # email = name_to_update.email
+            return redirect(url_for('dashboard', username=username,form=form, current_user=current_user))
+            # return render_template('update.html', form=form, name_to_update=name_to_update)
+        except:
+            flash('Error updating this user. Please try again', 'danger')
+            return redirect(url_for('dashboard', username=username, current_user=current_user))
+    
+    
+    return render_template('dashboard.html', form=form, username=username)
+            
+   
+    
+# create logout
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    logout_user()
+    flash(f'Your have been successfully logged out!!.', 'success')
+    return redirect(url_for('login'))
+    
+    
+    
+    
+    
+    
 @app.route('/user/<username>')
+@login_required
 def profile(username):
-    username = 'John'
-    first_name = 'Mike'
-    stuff =  'This is a <b>Bold Text</b>'
-    favourite_pizzars = ['pepperoni','Marka','melein',43, 'mandae',41]
-    return render_template('user.html', first_name=first_name, stuff=stuff,favourite_pizzars=favourite_pizzars)
+    user = User.query.filter_by(username=username).first()
+    # username = 'John'
+    # first_name = 'Mike'
+    # stuff =  'This is a <b>Bold Text</b>'
+    # favourite_pizzars = ['pepperoni','Marka','melein',43, 'mandae',41]
+    # return render_template('user.html', first_name=first_name, stuff=stuff,favourite_pizzars=favourite_pizzars)
+    return render_template('user.html', user=user)
 
 
 
@@ -247,6 +330,7 @@ def name():
 
 # add new users
 @app.route('/user/add', methods=['GET', 'POST'])
+# @login_required
 def add_user():
     name = None
     form = UserForm()
@@ -281,22 +365,66 @@ def add_user():
             
         
     # Display all users in the database and order by date added
-    all_users = User.query.order_by(User.date_added)
+    # all_users = User.query.order_by(User.date_added)
+    users = User.query.order_by(User.date_added)
     
-    return render_template('add_user.html', form=form, all_users=all_users)
+    return render_template('add_user.html', form=form, users=users)
     
 # update specific user database record
 @app.route('/user/<int:id>', methods=['GET', 'POST'])
+@login_required
 def update(id):
     form = UserForm()
     
-    name_to_update = User.query.get_or_404(id)
+    logged_in_user_id = current_user.id
+    
+    if id == logged_in_user_id:
+        profile_to_update = User.query.get_or_404(id)
+        
+        if request.method == 'POST':
+            profile_to_update.name = request.form['name']
+            profile_to_update.email = request.form['email']
+            profile_to_update.favourite_color = request.form['favourite_color']
+            profile_to_update.username = request.form['username']
+            
+            try:
+                db.session.commit()
+                flash('User details updated successfully', 'success')
+                return redirect(url_for('dashboard', username=username, form=form, current_user=current_user))
+            except:
+                flash('Error updating your user profile. Please try again', 'danger')
+                return redirect(url_for('update', id=current_user.id))
+        return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
+    else:
+        profile_to_update = User.query.get_or_404(id)
+        flash(f'Sorry you are not authorized to edit this user account with username {profile_to_update.username} ', 'danger')
+        return redirect(url_for('add_user'))
+        
+        
+            
+            
+    
+            
+            
+    
+    # =================================================================
+    id = int(current_user.id)
+    
+    profile_to_update = User.query.get_or_404(id)
+    
+    # name_to_update = User.query.get_or_404(id)
+    
     # password_to_update = name_to_update.password_hash
     if request.method == 'POST':
-        name_to_update.name = request.form['name']
-        name_to_update.email = request.form['email']
-        name_to_update.favourite_color = request.form['favourite_color']
-        name_to_update.username = request.form['username']
+        profile_to_update.name = request.form['name']
+        profile_to_update.email = request.form['email']
+        profile_to_update.favourite_color = request.form['favourite_color']
+        profile_to_update.username = request.form['username']
+        
+        # name_to_update.name = request.form['name']
+        # name_to_update.email = request.form['email']
+        # name_to_update.favourite_color = request.form['favourite_color']
+        # name_to_update.username = request.form['username']
         # name_to_update.password_hash = request.form['password_hash']
         
         
@@ -306,45 +434,58 @@ def update(id):
             flash('User details updated successfully', 'success')
             
             # email = name_to_update.email
-            return redirect(url_for('update', id=id))
+            # return redirect(url_for('update', id=id))
+            return redirect(url_for('dashboard', username=username,form=form, current_user=current_user))
+            
             # return render_template('update.html', form=form, name_to_update=name_to_update)
         except:
             flash('Error updating this user. Please try again', 'danger')
-            return redirect(url_for('update', id=id))
+            # return redirect(url_for('update', id=id))
+            return redirect(url_for('update', id=current_user.id))
+            # return redirect(url_for('dashboard', username=username, current_user=current_user))
+            
             
             # return render_template('update.html', form=form, name_to_update=name_to_update)
         
     # else:
-    return render_template('update.html', form=form, name_to_update=name_to_update)
+    # return render_template('update.html', form=form, name_to_update=name_to_update)
+    return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
     
         
 
 # update password only
 @app.route('/update_password/<int:id>', methods=['GET', 'POST'])
+@login_required
 def update_password(id):
     form = UserForm()
     
-    name_to_update = User.query.get_or_404(id)
+    id = current_user.id
+    
+    profile_to_update = User.query.get_or_404(id)
+    # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
+    
     
     
     if request.method == 'POST':
         hashed_pwd = generate_password_hash(request.form['password_hash'], 'sha256')
         
         # name_to_update.password_hash = request.form['password_hash']
-        name_to_update.password_hash = hashed_pwd
-        username = name_to_update.username 
+        # name_to_update.password_hash = hashed_pwd
+        profile_to_update.password_hash = hashed_pwd
+        username = profile_to_update.username 
         username = username       
         try:
             db.session.commit()
             flash(f'Dear {username} your password have been successfully updated ', 'success')
-            return redirect(url_for('update', id=id))
+            return redirect(url_for('dashboard', username=username))
         except:
             flash(f'Dear {username}, There was an error updating your password', 'danger')
             # return render_template('update.html', form=form, password_to_update=password_to_update)
-            return redirect(url_for('update', id=id))
+            return redirect(url_for('dashboard', username=username))
     # else:
     #     return render_template('update.html', form=form, name_to_update=name_to_update)
-    return render_template('update.html', form=form, name_to_update=name_to_update)
+    return render_template('dashboard.html', form=form, current_user=current_user)
+    # return render_template('update.html', form=form, name_to_update=name_to_update)
         
       
         
@@ -364,35 +505,82 @@ def get_current_date():
         
    # delete specific user database record
 @app.route('/delete/<int:id>', methods=['GET', 'POST'])
+@login_required
 def delete(id):
-    # form = UserForm()
     
-    user_to_delete = User.query.get_or_404(id)
+    logged_in_user_id = current_user.id
+    
+    if id == logged_in_user_id:
+        user_to_delete = User.query.get_or_404(id)        
+        try:
+            db.session.delete(user_to_delete)
+            db.session.commit()
+            flash('Your account has been successfully deleted from our site', 'success')
+            logout_user()
+            return redirect(url_for('login'))
+        except:
+            flash('Error deleting this user. Please try again', 'danger')
+            return redirect(url_for('dashboard', username=current_user.username))
+    else:
+        user_to_delete = User.query.get_or_404(id)               
+        
+        flash(f'Sorry you are not authorized to delete this user account with username {user_to_delete.username} ', 'danger')
+        # return redirect(url_for('dashboard', username=current_user.username))
+        return redirect(url_for('add_user'))
+        
+        
+        # user_to_delete = User.query.get_or_404(id)
+        # try:
+        #         db.session.delete(user_to_delete)
+        #         db.session.commit()
+        #         flash(' account has been successfully deleted from our site', 'success')
+        #         logout_user()
+        #         return redirect(url_for('login'))
+        #     except:
+        #         flash('Error deleting this user. Please try again', 'danger')
+        #         return redirect(url_for('dashboard.html'))
+                
+                # return render_template('add_user.html', all_users=all_users)
+        # return render_template('add_user.html', all_users=all_users, form=form)
+            
+            
+        
+# ================================================
+    # form = UserForm()
+    # id = current_user.id
+    
+    # user_to_delete = User.query.get_or_404(id)
+    
     # if request.method == 'POST':
     #     name_to_update.name = request.form['name']
     #     name_to_update.email = request.form['email']
     #     name_to_update.favourite_color = request.form['favourite_color']
         
-    try:
-        db.session.delete(user_to_delete)
-        db.session.commit()
-        flash('User deleted successfully', 'success')
+    # try:
+    #     db.session.delete(user_to_delete)
+    #     db.session.commit()
+    #     flash('User deleted successfully', 'success')
         
          # Display all users in the database and order by date added
-        all_users = User.query.order_by(User.date_added)
-        return redirect(url_for('add_user'))
+        # all_users = User.query.order_by(User.date_added)
+        # return render_template('login.html',form=form)
+        
+        # return redirect(url_for('dashboard', username=username, current_user=current_user))
+        
+        # return redirect(url_for('add_user'))
         
         # return render_template('add_user.html', all_users=all_users, form=form)
         
         # return render_template('update.html', form=form, name_to_update=name_to_update)
-    except:
-        flash('Error deleting this user. Please try again', 'danger')
-        # return render_template('add_user.html', all_users=all_users, form=form)
-    return render_template('add_user.html', all_users=all_users)
+    # except:
+    #     flash('Error deleting this user. Please try again', 'danger')
+    #     # return render_template('add_user.html', all_users=all_users, form=form)
+    # return render_template('add_user.html', all_users=all_users)
         
         
 
 @app.route('/add_post', methods=['GET', 'POST'])     
+@login_required
 def add_post():
     form = PostForm()
     posts = Post.query.order_by(Post.date_posted)
@@ -421,6 +609,7 @@ def add_post():
 
 # showing single post
 @app.route('/single_post/<slug>/<int:id>')
+@login_required
 def single_post(slug, id):
     form = PostForm()
     # posts = Post.query.order_by(Post.date_posted)
@@ -430,6 +619,7 @@ def single_post(slug, id):
     
 # editing Post
 @app.route('/update_post/<int:id>', methods=['GET', 'POST'])
+@login_required
 def update_post(id):
     form = PostForm()
     # query all posts
@@ -491,6 +681,7 @@ def update_post(id):
             
 #  delete post
 @app.route('/delete_post/<int:id>', methods=['GET', 'POST'])
+@login_required
 def delete_posts(id):
     post_to_delete = Post.query.get_or_404(id)
     try:
@@ -507,6 +698,7 @@ def delete_posts(id):
 
 # show all posts
 @app.route('/posts')
+@login_required
 def posts():
     posts = Post.query.order_by(Post.date_posted)
     return render_template('post.html', posts=posts)

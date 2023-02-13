@@ -14,29 +14,29 @@
 
     {% endif %}
 {% endwith %}
-
+{#
 {% if  name %}
     <h1>Hello {{ name }} </h1>
     <br>
     <br>
-{% else %}
+{% else %} #}
     <h1>Update User: </h1>
     <br>
     <div class="shadow p-3 mb-5 bg-body-tertiary rounded col-sm-5 container-fluid">
-        <form action="{{ url_for('update', id=name_to_update.id)}}" method="post">
+        <form action="{{ url_for('update', id=current_user.id)}}" method="post">
             {{ form.hidden_tag() }}
     
             {{ form.name.label(class="form-label") }}
-            {{ form.name(class="form-control", value=name_to_update.name) }}
+            {{ form.name(class="form-control", value=current_user.name) }}
             <br>
             {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control", value=name_to_update.email) }}
+            {{ form.email(class="form-control", value=current_user.email) }}
             <br>
             {{ form.favourite_color.label(class="form-label") }}
-            {{ form.favourite_color(class="form-control", value=name_to_update.favourite_color) }}
+            {{ form.favourite_color(class="form-control", value=current_user.favourite_color) }}
             <br>
             {{ form.username.label(class="form-label") }}
-            {{ form.username(class="form-control disable", value=name_to_update.username) }}
+            {{ form.username(class="form-control disable", value=current_user.username) }}
             <br>
             
             {{ form.submit(class="btn btn-secondary btn-warning", value="Update") }}
@@ -49,14 +49,14 @@
         <hr class="border border-secondary border-2 opacity-50">
         <br>
         <p>Change your password by updating the password field below</p>
-        <form action="{{url_for('update_password', id=name_to_update.id)}}" method="post">
+        <form action="{{url_for('update_password', id=current_user.id)}}" method="post">
             {{ form.hidden_tag() }}
 
             {{ form.password_hash.label(class="form-label") }}
-            {{ form.password_hash(class="form-control", value=name_to_update.password_hash) }}
+            {{ form.password_hash(class="form-control", value=current_user.password_hash) }}
             <br>
             {{ form.password_hash2.label(class="form-label") }}
-            {{ form.password_hash2(class="form-control ", value=name_to_update.password_hash) }}
+            {{ form.password_hash2(class="form-control ", value=current_user.password_hash) }}
             <br>
             <div class="form-check form-switch form-check-reverse">
                 {{ form.show_password.label(class="form-check-label", for="flexSwitchCheckDefault", id="show_pw_txt") }}
@@ -74,7 +74,7 @@
     <br>
     <br>
     <p class="text-center"><a href="{{ url_for('add_user')}}">Go Back</a></p>
-{% endif %}
+{#{% endif %}#}
 
 {% endblock %}
     

@@ -18,7 +18,9 @@
 <h1>LOG IN </h1>
 <br>
 <div class="shadow p-3 mb-5 bg-body-tertiary rounded col-sm-5 container-fluid">
+   
     <form action="{{ url_for('login')}}" method="post">
+
         {{ form.hidden_tag() }}
     
         {{ form.email.label(class="form-label") }}
