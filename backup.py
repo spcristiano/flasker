@@ -1,12 +1,14 @@
-from flask import Flask, render_template, flash, request, redirect, url_for
 from datetime import datetime, date
-
+from flask import Flask, render_template, flash, request, redirect, url_for
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField, PasswordField, BooleanField, RadioField,ValidationError, TextAreaField, EmailField
+from wtforms.validators import DataRequired, EqualTo, Email, Length
+from wtforms_validators import  AlphaNumeric, Integer
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import   UserMixin, LoginManager, login_required,login_user,login_remembered,logout_user, current_user
-from forms import NamerForm, UserForm, PostForm
-
+from wtforms.widgets import TextArea
+from flask_login import UserMixin, LoginManager, login_required,login_user,login_remembered,logout_user, current_user
 
 # other import statement
 import secrets, string
@@ -38,6 +40,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+@login_manager.user_loader
+def load_user(user_id):
+    user_id = User.query.get(int(user_id))
+    return user_id
+
+
 # Creating model class for database mapping
 
 # user model
@@ -51,8 +59,6 @@ class User(db.Model,UserMixin):
     username = db.Column(db.String(200),nullable=False, unique=True)
     password_hash = db.Column(db.String(300), nullable=False)
     date_added = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    # adding a one to many relationship between user and posts. User can have many posts 
-    posts = db.relationship('Post', backref='poster')
     
     # setting password hashing system
     @property
@@ -77,22 +83,73 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(300))
     content = db.Column(db.Text)
-    # author = db.Column(db.String(200))
+    author = db.Column(db.String(200))
     date_posted = db.Column(db.DateTime, default=datetime.utcnow)
     slug = db.Column(db.String(300))
-    # adding a one to many relationship between user and posts by creating a foreignkey to refernce the user primary key
-    poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+# creating a form class
+
+#These are some flask wtf fields
+# BooleanField
+# DateField
+# DateTimeField
+# DecimalField
+# FileField
+# HiddenField
+# MultipleField
+# FieldList
+# FloatField
+# FormField
+# IntegerField
+# PasswordField
+# RadioField
+# SelectField
+# SelectMultipleField
+# SubmitField
+# StringField
+# TextAreaField
+
+# These are some flask wft field validators
+# DataRequired
+# Email
+# EqualTo
+# InputRequired
+# IPAddress
+# Length
+# MacAddress
+# NumberRange
+# Optional
+# Regexp
+# URL
+# UUID
+# AnyOf
+# NoneOf
+
+class NamerForm(FlaskForm):
+    name = StringField("What is your name", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+
+class UserForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired(message='Name field is required. Please input your name')])
+    username = StringField("Username", validators=[DataRequired(message='Username field is required. Please input your username'), AlphaNumeric(message='This field can only contain alphabets and numbers')])
+    # email = StringField("Email", validators=[DataRequired()])
+    email = EmailField("Email", validators=[DataRequired(message='Email field is required. Please input your email'), Email(message='Please insert an email in this field')])
+    password_hash = PasswordField("Password", validators=[DataRequired(message='Password field is required. Please input your password'), EqualTo('password_hash2', message="Password do not match. This password must match the confirm password field"), Length(message='Password must be at least 6 characters long',min=6)],id='password_hash')
+    password_hash2 = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo('password_hash', message="Password do not match. This confirm password field must match the password field")],id='password_hash2')
+    favourite_color = StringField("Favourite Color")
+    show_password = BooleanField('Show Password', id='flexSwitchCheckDefault')
+    submit = SubmitField("Submit")
     
     
-
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    user_id = User.query.get(int(user_id))
-    return user_id
-
-
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(message='This title field is required. Please give your post a title')])
+    # content = TextAreaField('Content',validators=[DataRequired()], default='Write your post here')
+    content = StringField('Content',validators=[DataRequired(message='This content field is requred. Please write your post here')], widget=TextArea())
+    author = StringField('Author', validators=[DataRequired(message='This author field is required. Please write the author of this post')])
+    slug = StringField('Slug', validators=[DataRequired(message='This slug field is required. Please give your message a slug to for more usability.')])
+    submit = SubmitField('Post')
+    
 
 
 # '''
@@ -179,7 +236,7 @@ def login():
                     return redirect(url_for('dashboard', username=username, current_user=current_user))
                 
                 else:
-                    flash(f'Dear {username}, your password is incorrect', 'danger')
+                    flash(f'Dear {username}, your password is not correct', 'danger')
                     return redirect(url_for('login'))
             else:
                 user = email
@@ -272,8 +329,7 @@ def name():
     return render_template('name.html', name=name, form=form)
 
 # add new users
-# @app.route('/user/add', methods=['GET', 'POST'])
-@app.route('/user', methods=['GET', 'POST'])
+@app.route('/user/add', methods=['GET', 'POST'])
 # @login_required
 def add_user():
     name = None
@@ -351,19 +407,19 @@ def update(id):
             
             
     
-    # # =================================================================
-    # id = int(current_user.id)
+    # =================================================================
+    id = int(current_user.id)
     
-    # profile_to_update = User.query.get_or_404(id)
+    profile_to_update = User.query.get_or_404(id)
     
     # name_to_update = User.query.get_or_404(id)
     
     # password_to_update = name_to_update.password_hash
-    # if request.method == 'POST':
-    #     profile_to_update.name = request.form['name']
-    #     profile_to_update.email = request.form['email']
-    #     profile_to_update.favourite_color = request.form['favourite_color']
-    #     profile_to_update.username = request.form['username']
+    if request.method == 'POST':
+        profile_to_update.name = request.form['name']
+        profile_to_update.email = request.form['email']
+        profile_to_update.favourite_color = request.form['favourite_color']
+        profile_to_update.username = request.form['username']
         
         # name_to_update.name = request.form['name']
         # name_to_update.email = request.form['email']
@@ -373,27 +429,27 @@ def update(id):
         
         
         
-        # try:
-        #     db.session.commit()
-        #     flash('User details updated successfully', 'success')
+        try:
+            db.session.commit()
+            flash('User details updated successfully', 'success')
             
             # email = name_to_update.email
             # return redirect(url_for('update', id=id))
-            # return redirect(url_for('dashboard', username=username,form=form, current_user=current_user))
+            return redirect(url_for('dashboard', username=username,form=form, current_user=current_user))
             
             # return render_template('update.html', form=form, name_to_update=name_to_update)
-        # except:
-        #     flash('Error updating this user. Please try again', 'danger')
-        #     # return redirect(url_for('update', id=id))
-        #     return redirect(url_for('update', id=current_user.id))
-        #     # return redirect(url_for('dashboard', username=username, current_user=current_user))
+        except:
+            flash('Error updating this user. Please try again', 'danger')
+            # return redirect(url_for('update', id=id))
+            return redirect(url_for('update', id=current_user.id))
+            # return redirect(url_for('dashboard', username=username, current_user=current_user))
             
             
             # return render_template('update.html', form=form, name_to_update=name_to_update)
         
     # else:
-    # # return render_template('update.html', form=form, name_to_update=name_to_update)
-    # return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
+    # return render_template('update.html', form=form, name_to_update=name_to_update)
+    return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
     
         
 
@@ -406,36 +462,27 @@ def update_password(id):
     id = current_user.id
     
     profile_to_update = User.query.get_or_404(id)
-    username = profile_to_update.username
     # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
     
     
     
     if request.method == 'POST':
-        password_hash = request.form['password_hash']
-        password_hash2 = request.form['password_hash2']
-        if password_hash == password_hash2:
-            # hashed_pwd = generate_password_hash(request.form['password_hash'], 'sha256')
-            hashed_pwd = generate_password_hash(password_hash, 'sha256')
+        hashed_pwd = generate_password_hash(request.form['password_hash'], 'sha256')
         
         # name_to_update.password_hash = request.form['password_hash']
         # name_to_update.password_hash = hashed_pwd
-            profile_to_update.password_hash = hashed_pwd
-            username = profile_to_update.username 
-            username = username       
-            try:
-                db.session.commit()
-                flash(f'Dear {username} your password have been successfully updated ', 'success')
-                return redirect(url_for('dashboard', username=username))
-            except:
-                flash(f'Dear {username}, There was an error updating your password', 'danger')
-                # return render_template('update.html', form=form, password_to_update=password_to_update)
-                return redirect(url_for('dashboard', username=username))
-        else:
-            flash(f'Dear {username}, password does not match. Please make sure your password matches with the confrim password field.', 'danger')
+        profile_to_update.password_hash = hashed_pwd
+        username = profile_to_update.username 
+        username = username       
+        try:
+            db.session.commit()
+            flash(f'Dear {username} your password have been successfully updated ', 'success')
             return redirect(url_for('dashboard', username=username))
-            
-            
+        except:
+            flash(f'Dear {username}, There was an error updating your password', 'danger')
+            # return render_template('update.html', form=form, password_to_update=password_to_update)
+            return redirect(url_for('dashboard', username=username))
+    # else:
     #     return render_template('update.html', form=form, name_to_update=name_to_update)
     return render_template('dashboard.html', form=form, current_user=current_user)
     # return render_template('update.html', form=form, name_to_update=name_to_update)
@@ -537,19 +584,16 @@ def delete(id):
 def add_post():
     form = PostForm()
     posts = Post.query.order_by(Post.date_posted)
-
     
     
     #  checking if the form is submitted
     if form.validate_on_submit():
-        poster = current_user.id
-        # post = Post(title=form.title.data, content=form.content.data, author=form.author.data, slug=form.slug.data)
-        post = Post(title=form.title.data, content=form.content.data, poster_id=poster, slug=form.slug.data)
+        post = Post(title=form.title.data, content=form.content.data, author=form.author.data, slug=form.slug.data)
         
         # clering the form
         form.title.data = ''
         form.content.data = ''
-        # form.author.data = ''
+        form.author.data = ''
         form.slug.data = ''  
     
         # adding post data to database
@@ -574,69 +618,36 @@ def single_post(slug, id):
     return render_template('single_post.html', form=form, post=post)
     
 # editing Post
-@app.route('/update_post/<int:id>/<int:user_id>', methods=['GET', 'POST'])
+@app.route('/update_post/<int:id>', methods=['GET', 'POST'])
 @login_required
-def update_post(id, user_id):
+def update_post(id):
     form = PostForm()
     # query all posts
-    posts = Post.query.order_by(Post.date_posted)
+    posts = Post.query.order_by(Post.date_posted)    
     
-    # query a particular post
     post_to_update = Post.query.get_or_404(id)
     
-    post_owner = post_to_update.poster.id  
-    
-    # logged_in_user_id = current_user.id  
-    # user_id = current_user.id  
-    
-    # if user_id == logged_in_user_id:
-    if post_owner == user_id:
+    # show_content=PostForm(content=post_to_update.content)
+    if form.validate_on_submit():
         # post_to_update = Post.query.get_or_404(id)
-        if form.validate_on_submit():
-            if post_to_update:
-                post_to_update.title = form.title.data
-                post_to_update.content = form.content.data
-                post_to_update.slug = form.slug.data
-                try:
-                    db.session.commit()
-                    flash(f'Post with id {id} was successfully updated', 'success')
-                    return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
-                except:
-                    flash(f'Error updating this post. Please try again', 'danger')
-                    return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
-            else:
-                return redirect(url_for('add_post'))
-        else:
-            return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update)
-    else:
-        post_to_update = Post.query.get_or_404(id)
-        flash(f'Sorry you are not authorized to edit this post belonging to {post_to_update.poster.username}', 'danger')
-        return redirect(url_for('posts'))
-    
-    # post_to_update = Post.query.get_or_404(id)
-    
-    # # show_content=PostForm(content=post_to_update.content)
-    # if form.validate_on_submit():
-    #     # post_to_update = Post.query.get_or_404(id)
-        
-    #     if post_to_update:
-    #         post_to_update.title = form.title.data
-    #         post_to_update.content = form.content.data
-    #         # post_to_update.author = form.author.data
-    #         post_to_update.slug = form.slug.data
-    #         try:
-    #             db.session.commit()
-    #             flash(f'Post with id {id} was successfully updated', 'success')
-    #             return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
-    #             # return redirect(url_for('add_post'))
-    #         except:
-    #             flash('Error updating this post. Please try again', 'danger')
-    #             return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
+        if post_to_update:
+            post_to_update.title = form.title.data
+            post_to_update.content = form.content.data
+            post_to_update.author = form.author.data
+            post_to_update.slug = form.slug.data
+            try:
+                db.session.commit()
+                flash(f'Post with id {id} was successfully updated', 'success')
+                return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
+                # return redirect(url_for('add_post'))
+            except:
+                flash('Error updating this post. Please try again', 'danger')
+                return redirect(url_for('single_post', slug=post_to_update.slug, id=id))
                 
-    #             # return redirect(url_for('update_post', id=id))
-    #     else:
-    #         return redirect(url_for('add_post'))
-    # return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update )
+                # return redirect(url_for('update_post', id=id))
+        else:
+            return redirect(url_for('add_post'))
+    return render_template('update_post.html', form=form, posts=posts, post_to_update=post_to_update )
     
                 
                 

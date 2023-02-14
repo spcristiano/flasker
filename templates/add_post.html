@@ -25,9 +25,9 @@
             {{ form.title.label(class="form-label") }}
             {{ form.title(class="form-control") }}
             <br>
-            {{ form.author.label(class="form-label") }}
+           {# {{ form.author.label(class="form-label") }}
             {{ form.author(class="form-control") }}
-            <br>
+            <br>#}
             {{ form.slug.label(class="form-label") }}
             {{ form.slug(class="form-control") }}
             <br>
@@ -63,19 +63,24 @@
             <tr class="">
                 <th scope="row" class="text-center">{{ post.id }}</th>
                 <td><a href="{{ url_for('single_post', slug=post.slug, id=post.id)}}">{{ post.title|capitalize }}</a></td>
-                <td>{{ post.author }}</td>
+                {#<td>{{ post.author }}</td>#}
+                <td>{{ post.poster.name }}</td>
                 <td>{{ post.slug}}</td>
                 <td>{{ post.content}}</td>
                 <td>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-around">
-                        <a href="{{ url_for('update_post', id=post.id)}}">
-                            <button class="btn btn-warning me-md-2" type="button">Update</button>
-                        </a>
-                        <a href="{{ url_for('delete_posts', id=post.id)}}">
-                            <button class="btn btn-outline-danger" type="button">Delete</button>
-                        </a>
-                            
-                    </div>
+                    {% if post.poster.id == current_user.id %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-around">
+                            <a href="{{ url_for('update_post', id=post.id, user_id=current_user.id)}}">
+                                <button class="btn btn-warning me-md-2" type="button">Update</button>
+                            </a>
+                            <a href="{{ url_for('delete_posts', id=post.id)}}">
+                                <button class="btn btn-outline-danger" type="button">Delete</button>
+                            </a>
+                                
+                        </div>
+                    {% else %}
+                    
+                    {% endif %}
                 </td>
 
             </tr>

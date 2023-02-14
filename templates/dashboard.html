@@ -80,7 +80,7 @@
             {{ form.password_hash(class="form-control", value=current_user.password_hash) }}
             <br>
             {{ form.password_hash2.label(class="form-label") }}
-            {{ form.password_hash2(class="form-control ", value=current_user.password_hash) }}
+            {{ form.password_hash2(class="form-control ", value=current_user.password_hash2) }}
             <br>
             <div class="form-check form-switch form-check-reverse">
                 {{ form.show_password.label(class="form-check-label", for="flexSwitchCheckDefault", id="show_pw_txt") }}

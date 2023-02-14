@@ -40,8 +40,9 @@
                 <hr class="border-1 opacity-30 w-50 ">
             </div>
             <div class="d-flex justify-content-evenly align-items-center">                
-                <a href="{{ url_for('update_post', id=post.id)}}">
-                    <div class="px-1 fs-6 fst-italic text-muted text-primary">Post Author: {{post.author}} </div>
+                <a href="{{ url_for('update_post', id=post.id, user_id=current_user.id)}}">
+                    {#<div class="px-1 fs-6 fst-italic text-muted text-primary">Post Author: {{post.author}} </div>#}
+                    <div class="px-1 fs-6 fst-italic text-muted text-primary">Post Author: {{post.poster.name}} </div>
                 </a>                  
                 
                 <a href="{{ url_for('single_post', slug=post.slug, id=post.id)}}">
@@ -76,19 +77,24 @@
             <tr class="">
                 <th scope="row" class="text-center">{{ post.id }}</th>
                 <td><a href="{{ url_for('single_post', slug=post.slug, id=post.id)}}">{{ post.title|capitalize }}</a></td>
-                <td>{{ post.author }}</td>
+                {#<td>{{ post.author }}</td>#}
+                <td>{{ post.poster.name }}</td>
                 <td>{{ post.slug}}</td>
                 <td>{{ post.content}}</td>
                 <td>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-around">
-                        <a href="{{ url_for('update_post', id=post.id)}}">
-                            <button class="btn btn-warning me-md-2" type="button">Update</button>
-                        </a>
-                        <a href="{{ url_for('delete_posts', id=post.id)}}">
-                            <button class="btn btn-outline-danger" type="button">Delete</button>
-                        </a>
-                            
-                    </div>
+                    {% if post.poster.id == current_user.id %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-around">
+                            <a href="{{ url_for('update_post', id=post.id, user_id=current_user.id)}}">
+                                <button class="btn btn-warning me-md-2" type="button">Update</button>
+                            </a>
+                            <a href="{{ url_for('delete_posts', id=post.id)}}">
+                                <button class="btn btn-outline-danger" type="button">Delete</button>
+                            </a>
+                                
+                        </div>
+                    {% else %}
+                
+                    {% endif %}
                 </td>
 
             </tr>
