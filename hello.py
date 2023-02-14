@@ -320,29 +320,69 @@ def add_user():
 def update(id):
     form = UserForm()
     
-    logged_in_user_id = current_user.id
+    # logged_in_user_id = current_user.id
     
-    if id == logged_in_user_id:
-        profile_to_update = User.query.get_or_404(id)
-        
+    profile_to_update = User.query.get_or_404(id)
+    
+    profile_owner = profile_to_update.id
+    
+    # if id == logged_in_user_id:
+    if int(profile_owner) == id:
         if request.method == 'POST':
             profile_to_update.name = request.form['name']
             profile_to_update.email = request.form['email']
             profile_to_update.favourite_color = request.form['favourite_color']
             profile_to_update.username = request.form['username']
             
+        # if form.validate_on_submit():
+        #     profile_to_update.name = form.name.data
+        #     profile_to_update.email = form.email.data
+        #     profile_to_update.favourite_color = form.favourite_color.data
+        #     profile_to_update.username = form.username.data
+        
             try:
                 db.session.commit()
                 flash('User details updated successfully', 'success')
+                username = current_user.username
                 return redirect(url_for('dashboard', username=username, form=form, current_user=current_user))
             except:
                 flash('Error updating your user profile. Please try again', 'danger')
-                return redirect(url_for('update', id=current_user.id))
-        return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
+                return redirect(url_for('update', id=id))
+        else:
+            return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
     else:
-        profile_to_update = User.query.get_or_404(id)
         flash(f'Sorry you are not authorized to edit this user account with username {profile_to_update.username} ', 'danger')
         return redirect(url_for('add_user'))
+        
+            
+            
+                
+                
+                
+            
+        
+        
+    # if request.method == 'POST':
+    #     profile_to_update.name = request.form['name']
+    #     profile_to_update.email = request.form['email']
+    #     profile_to_update.favourite_color = request.form['favourite_color']
+    #     profile_to_update.username = request.form['username']
+        
+    #     try:
+    #         db.session.commit()
+    #         flash('User details updated successfully', 'success')
+    #         # return redirect(url_for('dashboard', username=username, form=form, current_user=current_user))
+    #         return redirect(url_for('dashboard', form=form, current_user=current_user))
+    #     except:
+    #         flash('Error updating your user profile. Please try again', 'danger')
+    #         return redirect(url_for('update', id=current_user.id))
+    # else:
+    #     # return redirect(url_for('update', id=id))
+    #     return render_template('update.html', form=form, profile_to_update=profile_to_update, current_user=current_user)
+    # # else:
+    #     profile_to_update = User.query.get_or_404(id)
+    #     # flash(f'Sorry you are not authorized to edit this user account with username {profile_to_update.username} ', 'danger')
+    #     # return redirect(url_for('add_user'))
         
         
             
@@ -410,7 +450,9 @@ def update_password(id):
     # secure_url =''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(200))        
     
     
-    
+    # if form.validate_on_submit():
+    #     password_hash = form.password_hash.data
+    #     password_hash2 = form.password_hash2.data
     if request.method == 'POST':
         password_hash = request.form['password_hash']
         password_hash2 = request.form['password_hash2']
